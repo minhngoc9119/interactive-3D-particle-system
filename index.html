@@ -2,353 +2,301 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Christmas Experience</title>
+    <title>Interactive 3D Christmas Landing Page</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        canvas { display: block; }
-        
-        #ui-container {
+        body { margin: 0; overflow: hidden; }
+        #fullscreen-btn {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: rgba(255, 255, 255, 0.8);
-            pointer-events: none; /* Let clicks pass through to 3D scene */
+            top: 10px;
+            right: 10px;
             z-index: 10;
-        }
-
-        h1 {
-            font-weight: 300;
-            letter-spacing: 0.2em;
-            margin: 0;
-            text-transform: uppercase;
-            font-size: 1.5rem;
-            text-shadow: 0 0 10px rgba(255,255,255,0.5);
-        }
-
-        p {
-            font-size: 0.8rem;
-            margin-top: 5px;
-            opacity: 0.7;
-        }
-
-        .controls-hint {
-            position: absolute;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-            pointer-events: none;
-            letter-spacing: 0.1em;
-            animation: pulse 3s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
-        }
-
-        /* Loading Overlay */
-        #loader {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            z-index: 999;
-            transition: opacity 1s ease-out;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            cursor: pointer;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <!-- Post-processing scripts from three.js examples -->
+    <script src="https://threejs.org/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://threejs.org/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://threejs.org/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://threejs.org/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://threejs.org/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://threejs.org/examples/js/shaders/LuminosityHighPassShader.js"></script>
 </head>
 <body>
-
-    <div id="loader">Generating Winter Wonderland...</div>
-
-    <div id="ui-container">
-        <h1>Luminous Holiday</h1>
-        <p>Interactive Particle System</p>
-    </div>
-
-    <div class="controls-hint">
-        MOVE to Swirl &middot; CLICK to Burst &middot; SCROLL to Zoom
-    </div>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-
-        // --- Configuration ---
-        const CONFIG = {
-            treeColor: 0x24ff69,
-            lightColor: 0xffaa00,
-            bgColor: 0x050505,
-            particleCount: 25000,
-            snowCount: 2000,
-            bloomStrength: 1.5,
-            bloomRadius: 0.4,
-            bloomThreshold: 0.1,
-            swirlStrength: 2.0,
-            spinSpeed: 0.05
-        };
-
-        // --- Scene Setup ---
+    <button id="fullscreen-btn">Fullscreen</button>
+    <script>
+        // Scene setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(CONFIG.bgColor);
-        scene.fog = new THREE.FogExp2(CONFIG.bgColor, 0.02);
+        scene.background = new THREE.Color(0x000022);
+        scene.fog = new THREE.FogExp2(0x000022, 0.005);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 15, 40);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 50, 300);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
-        renderer.toneMapping = THREE.ReinhardToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.maxDistance = 60;
-        controls.minDistance = 5;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+        // Post-processing
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
 
-        // --- Interaction Globals ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(9999, 9999); // Start off-screen
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Reference plane for mouse
-        const mouseWorldPos = new THREE.Vector3();
-        let isHoveringTree = false;
-
-        // --- Post Processing (Bloom) ---
-        const renderScene = new RenderPass(scene, camera);
-        
-        const bloomPass = new UnrealBloomPass(
-            new THREE.Vector2(window.innerWidth, window.innerHeight),
-            CONFIG.bloomStrength,
-            CONFIG.bloomRadius,
-            CONFIG.bloomThreshold
-        );
-
-        const composer = new THREE.EffectComposer(renderer);
-        composer.addPass(renderScene);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = 1.2;
+        bloomPass.radius = 0.5;
         composer.addPass(bloomPass);
 
-        // --- 1. The Particle Tree ---
-        const treeGeometry = new THREE.BufferGeometry();
-        const treePositions = [];
-        const treeOriginalPositions = []; // Store to return particles home
-        const treeColors = [];
-        const treeSizes = [];
+        // Group for tree
+        const group = new THREE.Group();
+        scene.add(group);
 
-        // Spiral Math
-        const turns = 12;
-        const height = 25;
-        const maxRadius = 10;
+        // Controls
+        const controls = {
+            treeColor: '#00ff00',
+            snowDensity: 1.0,
+            glowStrength: 1.2,
+            animationSpeed: 1.0
+        };
 
-        const color1 = new THREE.Color(CONFIG.treeColor);
-        const color2 = new THREE.Color(0x00ffff); // Cyan tint for depth
+        const gui = new dat.GUI({ autoPlace: false });
+        gui.domElement.style.position = 'absolute';
+        gui.domElement.style.top = '50px';
+        gui.domElement.style.right = '10px';
+        document.body.appendChild(gui.domElement);
 
-        for (let i = 0; i < CONFIG.particleCount; i++) {
-            // Normalized height (0 to 1)
-            const p = i / CONFIG.particleCount;
-            
-            // Cone shape math
-            const y = p * height - (height / 2);
-            const radius = (1 - p) * maxRadius;
-            
-            // Spiral angle + Randomness for volume
-            const angle = p * Math.PI * 2 * turns + (Math.random() * 0.5);
-            
-            // Add volume thickness
-            const randomRadiusOffset = (Math.random() - 0.5) * 1.5; 
-            const finalRadius = radius + randomRadiusOffset;
+        gui.addColor(controls, 'treeColor').name('Tree Color').onChange(updateTreeColor);
+        gui.add(controls, 'snowDensity', 0, 2).name('Snow Density').onChange(updateSnowDensity);
+        gui.add(controls, 'glowStrength', 0, 3).name('Glow Strength').onChange(updateGlow);
+        gui.add(controls, 'animationSpeed', 0, 2).name('Anim Speed');
 
-            const x = Math.cos(angle) * finalRadius;
-            const z = Math.sin(angle) * finalRadius;
+        // Mouse tracking
+        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        let isHovering = false;
+        let clickPosition = new THREE.Vector3();
+        let particleScale = 1.0;
 
-            treePositions.push(x, y, z);
-            treeOriginalPositions.push(x, y, z);
-
-            // Mix colors
-            const mixedColor = color1.clone().lerp(color2, Math.random() * 0.3);
-            treeColors.push(mixedColor.r, mixedColor.g, mixedColor.b);
-
-            treeSizes.push(Math.random() * 0.2 + 0.05);
-        }
-
-        treeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(treePositions, 3));
-        treeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(treeColors, 3));
-        treeGeometry.setAttribute('size', new THREE.Float32BufferAttribute(treeSizes, 1));
-
-        // Shader Material for smooth particles
-        const particleMaterial = new THREE.PointsMaterial({
-            size: 0.2,
-            vertexColors: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            transparent: true,
-            opacity: 0.8,
-            map: createCircleTexture() // Function defined below
-        });
-
-        const treeSystem = new THREE.Points(treeGeometry, particleMaterial);
-        scene.add(treeSystem);
-
-        // --- 2. The Christmas Lights (Glowing Ornaments) ---
-        const lightGeo = new THREE.BufferGeometry();
-        const lightPos = [];
-        const lightColors = [];
-        const lightCount = 300;
-        
-        for(let i=0; i<lightCount; i++) {
-            const p = Math.random();
-            const y = p * height - (height/2);
-            const r = (1 - p) * maxRadius + 0.5; // Slightly outside tree
-            const angle = Math.random() * Math.PI * 2;
-            
-            lightPos.push(
-                Math.cos(angle) * r, 
-                y, 
-                Math.sin(angle) * r
-            );
-
-            // Warm holiday colors
-            const c = new THREE.Color().setHSL(Math.random(), 1.0, 0.5);
-            lightColors.push(c.r, c.g, c.b);
-        }
-
-        lightGeo.setAttribute('position', new THREE.Float32BufferAttribute(lightPos, 3));
-        lightGeo.setAttribute('color', new THREE.Float32BufferAttribute(lightColors, 3));
-
-        const lightMaterial = new THREE.PointsMaterial({
-            size: 0.6,
-            vertexColors: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            map: createCircleTexture(),
-            transparent: true
-        });
-
-        const lightSystem = new THREE.Points(lightGeo, lightMaterial);
-        scene.add(lightSystem);
-
-
-        // --- 3. Realistic Snow ---
-        const snowGeo = new THREE.BufferGeometry();
-        const snowPos = [];
-        const snowVelocities = [];
-
-        for(let i=0; i<CONFIG.snowCount; i++) {
-            snowPos.push(
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 100
-            );
-            // x, y, z velocity
-            snowVelocities.push(
-                (Math.random() - 0.5) * 0.1,
-                -(Math.random() * 0.1 + 0.05), 
-                (Math.random() - 0.5) * 0.1
-            );
-        }
-        
-        snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
-        const snowMaterial = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 0.3,
-            transparent: true,
-            opacity: 0.6,
-            map: createCircleTexture(),
-            depthWrite: false,
-            blending: THREE.AdditiveBlending
-        });
-        const snowSystem = new THREE.Points(snowGeo, snowMaterial);
-        scene.add(snowSystem);
-
-
-        // --- 4. Interactive Burst/Explosion Logic ---
-        const bursts = []; // Array to hold active explosion particles
-
-        function createBurst(position) {
+        // Tree particles
+        let treeParticles;
+        function createTreeParticles() {
             const geometry = new THREE.BufferGeometry();
-            const count = 100;
             const positions = [];
-            const velocities = [];
             const colors = [];
+            const sizes = [];
 
-            for(let i=0; i<count; i++) {
-                positions.push(position.x, position.y, position.z);
-                
-                // Explode outwards
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos((Math.random() * 2) - 1);
-                const speed = Math.random() * 0.5 + 0.2;
+            const levels = 20;
+            const branchesPerLevel = 100;
+            for (let level = 0; level < levels; level++) {
+                const radius = (levels - level) * 5;
+                const y = level * 10 - 100;
+                for (let i = 0; i < branchesPerLevel; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const x = Math.cos(angle) * radius * (0.8 + Math.random() * 0.4);
+                    const z = Math.sin(angle) * radius * (0.8 + Math.random() * 0.4);
+                    positions.push(x, y, z);
+                    colors.push(0, 1, 0); // Green
+                    sizes.push(1 + Math.random() * 2);
+                }
+            }
 
-                velocities.push(
-                    speed * Math.sin(phi) * Math.cos(theta),
-                    speed * Math.sin(phi) * Math.sin(theta),
-                    speed * Math.cos(phi)
-                );
-
-                const c = new THREE.Color().setHSL(Math.random(), 1, 0.5);
-                colors.push(c.r, c.g, c.b);
+            // Trunk
+            for (let i = 0; i < 500; i++) {
+                const y = i * 0.4 - 100;
+                const radius = 5 + Math.random() * 2;
+                const angle = Math.random() * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                positions.push(x, y, z);
+                colors.push(0.3, 0.1, 0); // Brown
+                sizes.push(1);
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
 
-            const material = new THREE.PointsMaterial({
-                size: 0.5,
-                vertexColors: true,
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    mousePos: { value: new THREE.Vector3() },
+                    hover: { value: 0 },
+                    speed: { value: 1.0 }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    uniform float time;
+                    uniform vec3 mousePos;
+                    uniform float hover;
+                    uniform float speed;
+
+                    void main() {
+                        vColor = color;
+                        vec3 pos = position;
+                        float dist = distance(pos, mousePos);
+                        if (dist < 50.0) {
+                            float force = (50.0 - dist) * 0.1;
+                            vec3 dir = normalize(pos - mousePos);
+                            pos += dir * force * (hover > 0.5 ? -1.0 : 1.0); // Repel on hover, attract otherwise
+                            pos.x += sin(time * speed + pos.y) * force * 0.5; // Swirl
+                            pos.z += cos(time * speed + pos.x) * force * 0.5;
+                        }
+                        pos += vec3(sin(time * speed * 0.1 + pos.y * 0.05) * 2.0, 0.0, cos(time * speed * 0.1 + pos.z * 0.05) * 2.0);
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        if (length(gl_PointCoord - vec2(0.5, 0.5)) > 0.475) discard;
+                        gl_FragColor = vec4(vColor, 1.0);
+                    }
+                `,
                 blending: THREE.AdditiveBlending,
-                transparent: true,
-                depthWrite: false,
-                map: createCircleTexture()
+                depthTest: false,
+                transparent: true
             });
 
-            const points = new THREE.Points(geometry, material);
-            scene.add(points);
-            bursts.push({ mesh: points, velocities: velocities, age: 0 });
+            treeParticles = new THREE.Points(geometry, material);
+            group.add(treeParticles);
+        }
+        createTreeParticles();
+
+        // Glowing lights on tree
+        const lights = [];
+        function createLights() {
+            for (let i = 0; i < 50; i++) {
+                const light = new THREE.PointLight(0xffaa00, 1, 100);
+                light.position.set(
+                    (Math.random() - 0.5) * 80,
+                    Math.random() * 200 - 100,
+                    (Math.random() - 0.5) * 80
+                );
+                group.add(light);
+                lights.push(light);
+
+                // Glowing orb
+                const sphere = new THREE.SphereGeometry(1, 16, 16);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xffaa00, emissive: 0xffaa00 });
+                const mesh = new THREE.Mesh(sphere, mat);
+                mesh.position.copy(light.position);
+                group.add(mesh);
+            }
+        }
+        createLights();
+
+        // Snowfall
+        let snowSystem;
+        function createSnow() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const velocities = [];
+
+            const count = 5000 * controls.snowDensity;
+            for (let i = 0; i < count; i++) {
+                positions.push(Math.random() * 1000 - 500, Math.random() * 500, Math.random() * 1000 - 500);
+                velocities.push(0, - (0.1 + Math.random() * 0.1), 0);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    speed: { value: 1.0 }
+                },
+                vertexShader: `
+                    attribute vec3 velocity;
+                    uniform float time;
+                    uniform float speed;
+                    void main() {
+                        vec3 pos = position + velocity * time * speed;
+                        if (pos.y < -250.0) pos.y += 500.0;
+                        pos.x += sin(time * speed * 0.1 + pos.z) * 0.5; // Parallax sway
+                        pos.z += cos(time * speed * 0.1 + pos.x) * 0.5;
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        gl_PointSize = 5.0 * (500.0 / -mvPosition.z); // Depth-based size
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    void main() {
+                        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.5);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true
+            });
+
+            snowSystem = new THREE.Points(geometry, material);
+            scene.add(snowSystem);
+        }
+        createSnow();
+
+        // Sparkle burst on click
+        let sparkles = [];
+        function createSparkleBurst(pos) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            for (let i = 0; i < 100; i++) {
+                positions.push(0, 0, 0);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: Math.random() * 0xffffff,
+                size: 2,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+
+            const burst = new THREE.Points(geometry, material);
+            burst.position.copy(pos);
+            group.add(burst);
+
+            sparkles.push({ mesh: burst, time: 0, positions: positions.map(() => new THREE.Vector3((Math.random() - 0.5)*2, (Math.random() - 0.5)*2, (Math.random() - 0.5)*2).normalize()) });
+
+            setTimeout(() => {
+                group.remove(burst);
+                sparkles = sparkles.filter(s => s.mesh !== burst);
+            }, 2000);
         }
 
-
-        // --- Helper: Texture Generator (Canvas) ---
-        function createCircleTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 32;
-            canvas.height = 32;
-            const context = canvas.getContext('2d');
-            const gradient = context.createRadialGradient(16,16,0, 16,16,16);
-            gradient.addColorStop(0, 'rgba(255,255,255,1)');
-            gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-            gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
-            context.fillStyle = gradient;
-            context.fillRect(0,0,32,32);
-            
-            const texture = new THREE.Texture(canvas);
-            texture.needsUpdate = true;
-            return texture;
+        // Update functions
+        function updateTreeColor(color) {
+            const c = new THREE.Color(color);
+            const colors = treeParticles.geometry.attributes.color.array;
+            for (let i = 0; i < colors.length; i += 3) {
+                if (colors[i + 1] > 0.5) { // Tree foliage
+                    colors[i] = c.r;
+                    colors[i + 1] = c.g;
+                    colors[i + 2] = c.b;
+                }
+            }
+            treeParticles.geometry.attributes.color.needsUpdate = true;
         }
 
-        // --- Event Listeners ---
+        function updateSnowDensity() {
+            scene.remove(snowSystem);
+            createSnow();
+        }
+
+        function updateGlow(str) {
+            bloomPass.strength = str;
+        }
+
+        // Event listeners
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -357,192 +305,83 @@
         });
 
         document.addEventListener('mousemove', (e) => {
-            // Update mouse coordinates for Raycaster (-1 to +1)
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-            // Update world position for particle interaction
-            const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
-            vector.unproject(camera);
-            const dir = vector.sub(camera.position).normalize();
-            const distance = -camera.position.z / dir.z;
-            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-            mouseWorldPos.copy(pos);
-            
-            // Subtle camera parallax
-            camera.position.x += (mouse.x * 2 - camera.position.x) * 0.05;
-            camera.position.y += (mouse.y * 2 - camera.position.y) * 0.05;
+            mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
         });
 
-        document.addEventListener('click', () => {
-            // Burst at 0,0,0 or slightly randomized near tree center
-            const randomHeight = (Math.random() * height) - (height/2);
-            createBurst(new THREE.Vector3(0, randomHeight, 0));
-            
-            // Flash effect
-            bloomPass.strength = 3.0;
-            setTimeout(() => { bloomPass.strength = CONFIG.bloomStrength }, 200);
+        document.addEventListener('wheel', (e) => {
+            camera.position.z += e.deltaY * 0.1;
+            particleScale += e.deltaY * 0.001;
+            particleScale = Math.max(0.5, Math.min(2, particleScale));
+            // Update sizes if needed
         });
 
-        // --- Animation Loop ---
+        document.addEventListener('click', (e) => {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(treeParticles);
+            if (intersects.length > 0) {
+                createSparkleBurst(intersects[0].point);
+            }
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Animation loop
         const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
-            const time = clock.getElapsedTime();
-            const delta = clock.getDelta();
+            const time = clock.getElapsedTime() * controls.animationSpeed;
 
-            // 1. Animate Tree Particles (Swirl + Return Home)
-            const positions = treeSystem.geometry.attributes.position.array;
-            
-            // Use Raycaster to detect if mouse is 'hitting' the general tree area
+            // Update tree shader
+            treeParticles.material.uniforms.time.value = time;
+            treeParticles.material.uniforms.speed.value = controls.animationSpeed;
+
+            // Raycast for hover and mouse pos
             raycaster.setFromCamera(mouse, camera);
-            
-            // Simple logic: If mouse is close to center, excite particles
-            const distToCenter = Math.sqrt(mouse.x*mouse.x + mouse.y*mouse.y);
-            const isNearTree = distToCenter < 0.3;
-
-            for(let i=0; i<CONFIG.particleCount; i++) {
-                const ix = i * 3;
-                const iy = i * 3 + 1;
-                const iz = i * 3 + 2;
-
-                const ox = treeOriginalPositions[ix];
-                const oy = treeOriginalPositions[iy];
-                const oz = treeOriginalPositions[iz];
-
-                let px = positions[ix];
-                let py = positions[iy];
-                let pz = positions[iz];
-
-                // Calculate distance to mouse projection (in approximate 3D space)
-                // Note: Simplified "Swirl" effect based on mouse screen position projected
-                // To do this strictly in 3D is heavy, so we use a visual hack
-                
-                if (isNearTree) {
-                    // Swirl Effect
-                    const dx = px - (mouse.x * 20); // Scale mouse to scene size
-                    const dz = pz - 0;
-                    const d = Math.sqrt(dx*dx + dz*dz);
-                    
-                    if (d < 5) {
-                        const force = (5 - d) / 5;
-                        // Tangential force
-                        px -= dz * force * 0.1 * CONFIG.swirlStrength;
-                        pz += dx * force * 0.1 * CONFIG.swirlStrength;
-                        // Repel
-                        px += dx * force * 0.05;
-                        pz += dz * force * 0.05;
-                    }
-                }
-
-                // Return to original shape (Elasticity)
-                px += (ox - px) * 0.05;
-                py += (oy - py) * 0.05;
-                pz += (oz - pz) * 0.05;
-                
-                // Add gentle idle bobbing
-                py += Math.sin(time * 2 + px * 0.5) * 0.01;
-
-                positions[ix] = px;
-                positions[iy] = py;
-                positions[iz] = pz;
-            }
-            treeSystem.geometry.attributes.position.needsUpdate = true;
-            
-            // Rotate tree slowly
-            treeSystem.rotation.y += CONFIG.spinSpeed * 0.1;
-            lightSystem.rotation.y += CONFIG.spinSpeed * 0.1;
-
-            // 2. Animate Lights (Twinkle)
-            const lightColors = lightSystem.geometry.attributes.color.array;
-            for(let i=0; i<lightCount; i++) {
-                const i3 = i*3;
-                const flicker = Math.sin(time * 5 + i) * 0.5 + 0.5;
-                // Modulate brightness not color
-                // Access original color logic would be better but this is cheap twinkle
-                if(Math.random() > 0.95) {
-                    lightColors[i3] = Math.random(); // R
-                    lightColors[i3+1] = Math.random(); // G
-                }
-            }
-            lightSystem.geometry.attributes.color.needsUpdate = true;
-
-            // 3. Animate Snow
-            const sPos = snowSystem.geometry.attributes.position.array;
-            for(let i=0; i<CONFIG.snowCount; i++) {
-                const i3 = i*3;
-                
-                sPos[i3] += snowVelocities[i3] + Math.sin(time + sPos[i3+1] * 0.05) * 0.02; // X sway
-                sPos[i3+1] += snowVelocities[i3+1]; // Y fall
-                sPos[i3+2] += snowVelocities[i3+2]; // Z
-                
-                // Reset if falls below bottom
-                if(sPos[i3+1] < -20) {
-                    sPos[i3+1] = 20;
-                    sPos[i3] = (Math.random() - 0.5) * 60;
-                    sPos[i3+2] = (Math.random() - 0.5) * 60;
-                }
-            }
-            snowSystem.geometry.attributes.position.needsUpdate = true;
-
-            // 4. Animate Bursts
-            for(let i=bursts.length-1; i>=0; i--) {
-                const b = bursts[i];
-                const attrs = b.mesh.geometry.attributes.position.array;
-                
-                b.age += 1;
-                
-                for(let j=0; j<100; j++) {
-                    attrs[j*3] += b.velocities[j*3];
-                    attrs[j*3+1] += b.velocities[j*3+1] - 0.01; // Gravity
-                    attrs[j*3+2] += b.velocities[j*3+2];
-                }
-                b.mesh.geometry.attributes.position.needsUpdate = true;
-                b.mesh.material.opacity = 1 - (b.age / 60);
-                
-                if(b.age > 60) {
-                    scene.remove(b.mesh);
-                    b.mesh.geometry.dispose();
-                    bursts.splice(i, 1);
-                }
+            const intersects = raycaster.intersectObject(treeParticles);
+            isHovering = intersects.length > 0;
+            treeParticles.material.uniforms.hover.value = isHovering ? 1.0 : 0.0;
+            if (isHovering) {
+                treeParticles.material.uniforms.mousePos.value.copy(intersects[0].point);
+                bloomPass.strength = controls.glowStrength * 1.5; // Increase glow on hover
+            } else {
+                bloomPass.strength = controls.glowStrength;
             }
 
-            // Controls update
-            if(controls.autoRotate) controls.update();
+            // Update lights animation
+            lights.forEach((light, i) => {
+                light.intensity = 1 + Math.sin(time + i) * 0.5;
+            });
 
-            // Render Bloom
+            // Update snow
+            snowSystem.material.uniforms.time.value = time;
+            snowSystem.material.uniforms.speed.value = controls.animationSpeed;
+
+            // Update sparkles
+            sparkles.forEach(s => {
+                s.time += 0.05;
+                const posArray = s.mesh.geometry.attributes.position.array;
+                for (let i = 0; i < posArray.length; i += 3) {
+                    const dir = s.positions[i / 3];
+                    posArray[i] = dir.x * s.time * 20;
+                    posArray[i + 1] = dir.y * s.time * 20;
+                    posArray[i + 2] = dir.z * s.time * 20;
+                }
+                s.mesh.geometry.attributes.position.needsUpdate = true;
+                s.mesh.material.opacity = 1 - s.time;
+            });
+
+            // Rotate group slightly for motion
+            group.rotation.y = Math.sin(time * 0.1) * 0.1;
+
             composer.render();
         }
-
-        // --- GUI Controls ---
-        const gui = new GUI();
-        gui.domElement.style.marginTop = "60px";
-        const treeFolder = gui.addFolder('Tree Settings');
-        treeFolder.addColor(CONFIG, 'treeColor').onChange(v => {
-            const c = new THREE.Color(v);
-            const colors = treeSystem.geometry.attributes.color.array;
-            for(let i=0; i<colors.length; i+=3) {
-                 // Simple tint overlay
-                 colors[i] = c.r; colors[i+1] = c.g; colors[i+2] = c.b;
-            }
-            treeSystem.geometry.attributes.color.needsUpdate = true;
-        });
-        treeFolder.add(CONFIG, 'swirlStrength', 0, 10).name('Swirl Force');
-        treeFolder.add(CONFIG, 'spinSpeed', 0, 1).name('Spin Speed').onChange(v => {
-            controls.autoRotateSpeed = v * 10;
-        });
-
-        const bloomFolder = gui.addFolder('Post Processing');
-        bloomFolder.add(CONFIG, 'bloomStrength', 0, 3).onChange(v => bloomPass.strength = v);
-        bloomFolder.add(CONFIG, 'bloomRadius', 0, 1).onChange(v => bloomPass.radius = v);
-        
-        // Remove loader
-        setTimeout(() => {
-            document.getElementById('loader').style.opacity = 0;
-            setTimeout(() => document.getElementById('loader').remove(), 1000);
-        }, 1500);
-
         animate();
     </script>
 </body>
