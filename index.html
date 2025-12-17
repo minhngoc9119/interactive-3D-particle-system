@@ -3,513 +3,401 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture Particle System</title>
+    <title>Interactive Christmas Particle Experience</title>
     <style>
-        :root {
-            --primary-color: #00f3ff;
-            --bg-glass: rgba(20, 20, 20, 0.6);
-            --border-glass: rgba(255, 255, 255, 0.1);
-        }
-
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #050505;
-            font-family: 'Segoe UI', sans-serif;
-            color: white;
+            background-color: #050505; /* Deep dark night */
+            font-family: 'Courier New', Courier, monospace;
         }
 
-        /* WebGL Canvas */
         #canvas-container {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             z-index: 1;
         }
 
-        /* Hidden Video Element for MediaPipe */
-        #video-input {
-            display: none; 
-            /* To see the camera debug, set display: block; position: absolute; z-index: 0; */
-        }
-
-        /* UI Overlay */
-        #ui-container {
+        /* Minimalistic UI Overlay */
+        #ui {
             position: absolute;
             top: 20px;
-            right: 20px;
-            width: 280px;
-            padding: 20px;
-            background: var(--bg-glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
-            z-index: 10;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            transition: opacity 0.3s;
-        }
-
-        h2 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--primary-color);
-        }
-
-        .control-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            margin-bottom: 5px;
-            color: #ccc;
-        }
-
-        /* Shape Buttons */
-        .shape-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--border-glass);
-            color: white;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 12px;
-        }
-
-        button:hover, button.active {
-            background: var(--primary-color);
-            color: black;
-            font-weight: bold;
-        }
-
-        /* Color Picker */
-        input[type="color"] {
-            width: 100%;
-            height: 35px;
-            border: none;
-            background: none;
-            cursor: pointer;
-        }
-
-        /* Status Indicator */
-        #status {
-            position: absolute;
-            bottom: 20px;
             left: 20px;
             z-index: 10;
-            font-size: 12px;
-            color: #888;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: white;
+            pointer-events: none; /* Let clicks pass through to 3D scene */
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
-        .dot {
-            width: 8px;
-            height: 8px;
-            background-color: #f00;
-            border-radius: 50%;
-            transition: background-color 0.3s;
-        }
-        
-        .dot.active { background-color: #0f0; box-shadow: 0 0 8px #0f0; }
-
-        /* Fullscreen Button */
-        #fs-btn {
-            margin-top: 10px;
-            width: 100%;
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
-        /* Loading Overlay */
-        #loading {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: black;
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+        p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
         }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #333;
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+
+        /* Loading indicator */
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            z-index: 20;
+            font-size: 24px;
+            transition: opacity 0.5s;
         }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loading">
-        <div class="spinner"></div>
-        <p style="margin-top: 15px; font-size: 14px; color: #888;">Initializing AI & Graphics...</p>
+    <div id="loader">Loading Magic...</div>
+
+    <div id="ui">
+        <h1>Holiday Particles</h1>
+        <p>Scroll to Zoom • Click to Burst • Move to Interact</p>
     </div>
 
     <div id="canvas-container"></div>
-    <video id="video-input" autoplay playsinline></video>
 
-    <div id="ui-container">
-        <h2>Particle Controller</h2>
-        
-        <div class="control-group">
-            <label>Morph Pattern</label>
-            <div class="shape-grid">
-                <button class="shape-btn active" data-shape="sphere">Sphere</button>
-                <button class="shape-btn" data-shape="cube">Cube</button>
-                <button class="shape-btn" data-shape="torus">Torus</button>
-                <button class="shape-btn" data-shape="random">Chaos</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label>Particle Color</label>
-            <input type="color" id="color-picker" value="#00f3ff">
-        </div>
-
-        <button id="fs-btn">Toggle Fullscreen</button>
-    </div>
-
-    <div id="status">
-        <div class="dot" id="tracking-dot"></div>
-        <span id="tracking-text">Waiting for camera...</span>
-    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 
     <script type="module">
-        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-        import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-        // --- Configuration ---
-        const PARTICLE_COUNT = 15000;
-        const CONFIG = {
-            baseColor: new THREE.Color('#00f3ff'),
-            expansion: 0.0, // 0 = closed, 1 = open
-            targetExpansion: 0.0,
-            currentShape: 'sphere'
+        // --- CONFIGURATION ---
+        const config = {
+            particleCount: 20000,
+            particleSize: 0.15,
+            color: '#ff2244', // Initial Red
+            secondaryColor: '#ffffff',
+            preset: 'Tree', // Options: Snow, Tree, Galaxy
+            speed: 1.0,
+            hoverRadius: 3.0,
+            repelStrength: 2.0, // Interaction strength
+            bloomStrength: 1.5,
+            bloomRadius: 0.4,
+            bloomThreshold: 0.1
         };
 
-        // --- 1. Three.js Setup ---
+        // --- SCENE SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+        scene.fog = new THREE.FogExp2(0x050505, 0.02); // Distance fog for depth
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.z = 8;
-        camera.position.y = 2;
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 8);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
+        // --- CONTROLS ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+        controls.dampingFactor = 0.05;
+        controls.enablePan = false;
+        controls.maxDistance = 20;
+        controls.minDistance = 2;
 
-        // --- 2. Particle System (Shader & Geometry) ---
+        // --- SHADERS (GLSL) ---
         
-        // Custom Shader for performance and glow
-        const particleMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uColor: { value: CONFIG.baseColor },
-                uExpansion: { value: 0 }, // Controlled by hand
-                uSize: { value: 6.0 * window.devicePixelRatio }
-            },
-            vertexShader: `
-                uniform float uTime;
-                uniform float uExpansion;
-                uniform float uSize;
+        // 1. Vertex Shader: Handles position, movement, and mouse interaction
+        const vertexShader = `
+            uniform float uTime;
+            uniform float uSize;
+            uniform vec3 uMouse;
+            uniform float uHoverRadius;
+            uniform float uRepelStrength;
+            
+            attribute vec3 aRandomness;
+            attribute float aScale;
+            
+            varying vec3 vColor;
+            varying float vDistance;
+
+            void main() {
+                vec3 pos = position;
+
+                // Adds a gentle "breathing" / falling animation
+                // We use the randomness attribute so particles don't move in unison
+                float time = uTime * 0.5;
                 
-                attribute vec3 positionTarget; // Where we want to go
-                attribute float aRandom;
+                // Add subtle organic noise movement
+                pos.x += sin(time + aRandomness.x * 10.0) * 0.1;
+                pos.y += cos(time + aRandomness.y * 10.0) * 0.1;
+                pos.z += sin(time + aRandomness.z * 10.0) * 0.1;
+
+                // --- MOUSE INTERACTION MATH ---
+                float dist = distance(pos, uMouse);
+                if (dist < uHoverRadius) {
+                    vec3 dir = normalize(pos - uMouse);
+                    float force = (uHoverRadius - dist) / uHoverRadius;
+                    
+                    // Repel particles smoothly
+                    pos += dir * force * uRepelStrength;
+                }
+
+                vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+
+                // Size attenuation: Particles are smaller when further away
+                gl_PointSize = uSize * aScale * (300.0 / -mvPosition.z);
                 
-                varying float vAlpha;
+                // Pass distance to fragment shader for depth effects
+                vDistance = -mvPosition.z;
+            }
+        `;
 
-                // Ease function
-                float cubicInOut(float t) {
-                    return t < 0.5
-                        ? 4.0 * t * t * t
-                        : 0.5 * pow(2.0 * t - 2.0, 3.0) + 1.0;
+        // 2. Fragment Shader: Handles the look (glow, shape, color)
+        const fragmentShader = `
+            uniform vec3 uColor;
+            uniform vec3 uColor2;
+            
+            void main() {
+                // Create a soft circular glow instead of a square pixel
+                float distanceToCenter = distance(gl_PointCoord, vec2(0.5));
+                float strength = 0.05 / distanceToCenter - 0.1;
+                
+                // Discard pixels outside the circle
+                if(distanceToCenter > 0.5) discard;
+
+                // Mix colors for variety
+                vec3 finalColor = mix(uColor, uColor2, strength * 2.0);
+
+                gl_FragColor = vec4(finalColor, strength);
+            }
+        `;
+
+        // --- PARTICLE SYSTEM ---
+        let geometry = null;
+        let material = null;
+        let points = null;
+
+        function createParticles() {
+            if (points) {
+                geometry.dispose();
+                material.dispose();
+                scene.remove(points);
+            }
+
+            geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(config.particleCount * 3);
+            const randomness = new Float32Array(config.particleCount * 3);
+            const scales = new Float32Array(config.particleCount);
+
+            // Generate Shapes based on Presets
+            for (let i = 0; i < config.particleCount; i++) {
+                const i3 = i * 3;
+                let x, y, z;
+
+                if (config.preset === 'Snowfall') {
+                    // Random box distribution
+                    x = (Math.random() - 0.5) * 20;
+                    y = (Math.random() - 0.5) * 20;
+                    z = (Math.random() - 0.5) * 20;
+                } 
+                else if (config.preset === 'Tree') {
+                    // Conical Spiral Math
+                    const turn = i / config.particleCount * 25.0; // How many turns
+                    const h = i / config.particleCount * 10.0 - 5.0; // Height -5 to 5
+                    const r = (1.0 - (h + 5.0) / 10.0) * 3.5; // Radius decreases as height increases
+                    
+                    x = Math.cos(turn * Math.PI * 2) * r;
+                    z = Math.sin(turn * Math.PI * 2) * r;
+                    y = h;
+                    
+                    // Add some "jitter" so it looks like pine needles/ornaments, not a perfect line
+                    x += (Math.random() - 0.5) * 0.5;
+                    z += (Math.random() - 0.5) * 0.5;
+                    y += (Math.random() - 0.5) * 0.5;
+                }
+                else if (config.preset === 'Galaxy') {
+                    // Flattened sphere
+                    const radius = Math.random() * 8;
+                    const spinAngle = radius * 0.5;
+                    const branchAngle = (i % 3) * ((Math.PI * 2) / 3);
+                    
+                    const randomX = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1); 
+                    const randomY = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1);
+                    const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1);
+
+                    x = Math.cos(branchAngle + spinAngle) * radius + randomX;
+                    y = randomY * 2.0;
+                    z = Math.sin(branchAngle + spinAngle) * radius + randomZ;
                 }
 
-                void main() {
-                    // Interpolate between current position (stored in 'position' attribute) 
-                    // and target (stored via CPU morphing logic).
-                    // *Note: For this simplified demo, we morph via CPU, but use shader for EXPANSION effect*
-                    
-                    vec3 pos = position;
+                positions[i3] = x;
+                positions[i3 + 1] = y;
+                positions[i3 + 2] = z;
 
-                    // Gesture Effect: Explode/Expand based on hand openness
-                    // We push the particle outward from center (0,0,0) based on uExpansion
-                    vec3 dir = normalize(pos);
-                    float dist = length(pos);
-                    
-                    // Add some noise movement
-                    float noise = sin(uTime * 2.0 + aRandom * 10.0) * 0.1;
-                    
-                    // Apply expansion
-                    float expansionFactor = 1.0 + (uExpansion * 3.0); // Expand up to 3x
-                    vec3 finalPos = pos * expansionFactor + (dir * noise);
+                randomness[i3] = Math.random();
+                randomness[i3 + 1] = Math.random();
+                randomness[i3 + 2] = Math.random();
+                
+                scales[i] = Math.random();
+            }
 
-                    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-                    gl_PointSize = uSize * (1.0 / -mvPosition.z);
-                    gl_Position = projectionMatrix * mvPosition;
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3));
+            geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1));
 
-                    // Fading effect at edges
-                    vAlpha = 1.0;
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 uColor;
-                varying float vAlpha;
+            material = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uSize: { value: config.particleSize * renderer.getPixelRatio() },
+                    uColor: { value: new THREE.Color(config.color) },
+                    uColor2: { value: new THREE.Color(config.secondaryColor) },
+                    uMouse: { value: new THREE.Vector3(999, 999, 999) }, // Init off-screen
+                    uHoverRadius: { value: config.hoverRadius },
+                    uRepelStrength: { value: config.repelStrength }
+                },
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                vertexColors: false,
+                transparent: true
+            });
 
-                void main() {
-                    // Create a soft circular particle
-                    float r = distance(gl_PointCoord, vec2(0.5));
-                    if (r > 0.5) discard;
-                    
-                    // Soft glow from center
-                    float glow = 1.0 - (r * 2.0);
-                    glow = pow(glow, 1.5); 
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+        }
 
-                    gl_FragColor = vec4(uColor, glow * 0.8);
-                }
-            `,
-            transparent: true,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending
+        createParticles();
+
+        // --- POST PROCESSING (BLOOM) ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            config.bloomStrength,
+            config.bloomRadius,
+            config.bloomThreshold
+        );
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- MOUSE RAYCASTING ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Invisible plane facing camera
+        const targetMousePos = new THREE.Vector3();
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Project ray from camera to invisible plane to get 3D coords
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.ray.intersectPlane(plane, targetMousePos);
+            
+            // Send position to shader
+            if(material) {
+                material.uniforms.uMouse.value.copy(targetMousePos);
+            }
         });
 
-        // Geometry Generation
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(PARTICLE_COUNT * 3);
-        const randoms = new Float32Array(PARTICLE_COUNT);
-        
-        // We keep "Target" arrays for morphing
-        const shapes = {
-            sphere: new Float32Array(PARTICLE_COUNT * 3),
-            cube: new Float32Array(PARTICLE_COUNT * 3),
-            torus: new Float32Array(PARTICLE_COUNT * 3),
-            random: new Float32Array(PARTICLE_COUNT * 3)
-        };
+        // Click interaction: Burst Effect
+        window.addEventListener('click', () => {
+            // Simple manual animation logic (expanding and contracting radius)
+            let start = Date.now();
+            let duration = 300; // ms
+            let initialRadius = config.hoverRadius;
+            let maxRadius = 10.0;
 
-        // Initialize shapes
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-            const i3 = i * 3;
-            randoms[i] = Math.random();
-
-            // 1. Sphere
-            const r = 2.5;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            shapes.sphere[i3] = r * Math.sin(phi) * Math.cos(theta);
-            shapes.sphere[i3+1] = r * Math.sin(phi) * Math.sin(theta);
-            shapes.sphere[i3+2] = r * Math.cos(phi);
-
-            // 2. Cube
-            const s = 3.5;
-            shapes.cube[i3] = (Math.random() - 0.5) * s;
-            shapes.cube[i3+1] = (Math.random() - 0.5) * s;
-            shapes.cube[i3+2] = (Math.random() - 0.5) * s;
-
-            // 3. Torus
-            const u = Math.random() * Math.PI * 2;
-            const v = Math.random() * Math.PI * 2;
-            const R = 3; const r_tube = 1;
-            shapes.torus[i3] = (R + r_tube * Math.cos(v)) * Math.cos(u);
-            shapes.torus[i3+1] = (R + r_tube * Math.cos(v)) * Math.sin(u);
-            shapes.torus[i3+2] = r_tube * Math.sin(v);
-            
-            // 4. Random/Chaos
-            shapes.random[i3] = (Math.random() - 0.5) * 10;
-            shapes.random[i3+1] = (Math.random() - 0.5) * 10;
-            shapes.random[i3+2] = (Math.random() - 0.5) * 10;
-
-            // Set initial position to Sphere
-            positions[i3] = shapes.sphere[i3];
-            positions[i3+1] = shapes.sphere[i3+1];
-            positions[i3+2] = shapes.sphere[i3+2];
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1));
-
-        const particles = new THREE.Points(geometry, particleMaterial);
-        scene.add(particles);
-
-
-        // --- 3. Interaction & Animation Logic ---
-
-        // Morphing Logic (CPU side for simplicity in this file)
-        function morphParticles(deltaTime) {
-            const currentPos = geometry.attributes.position.array;
-            const targetPos = shapes[CONFIG.currentShape];
-            const speed = 2.5 * deltaTime; // Morph speed
-
-            for (let i = 0; i < PARTICLE_COUNT * 3; i++) {
-                currentPos[i] += (targetPos[i] - currentPos[i]) * speed;
+            function animateBurst() {
+                let now = Date.now();
+                let progress = (now - start) / duration;
+                
+                if (progress < 1) {
+                    // Ping pong effect (expand then contract)
+                    let val = Math.sin(progress * Math.PI) * maxRadius;
+                    if (material) {
+                        material.uniforms.uHoverRadius.value = initialRadius + val;
+                        material.uniforms.uRepelStrength.value = config.repelStrength * 5.0; // Stronger push
+                    }
+                    requestAnimationFrame(animateBurst);
+                } else {
+                    // Reset
+                    if (material) {
+                        material.uniforms.uHoverRadius.value = initialRadius;
+                        material.uniforms.uRepelStrength.value = config.repelStrength;
+                    }
+                }
             }
-            geometry.attributes.position.needsUpdate = true;
-        }
+            animateBurst();
+        });
 
-        // --- 4. MediaPipe Hand Tracking Setup ---
+        // --- UI PANEL ---
+        const gui = new GUI({ title: 'Christmas Settings' });
         
-        let handLandmarker = undefined;
-        let webcamRunning = false;
-        const video = document.getElementById('video-input');
-        const trackingDot = document.getElementById('tracking-dot');
-        const trackingText = document.getElementById('tracking-text');
+        gui.add(config, 'preset', ['Snowfall', 'Tree', 'Galaxy']).name('Scene Preset').onChange(createParticles);
+        
+        const folderVisuals = gui.addFolder('Visuals');
+        folderVisuals.addColor(config, 'color').name('Primary Color').onChange((v) => { material.uniforms.uColor.value.set(v); });
+        folderVisuals.addColor(config, 'secondaryColor').name('Glow Color').onChange((v) => { material.uniforms.uColor2.value.set(v); });
+        folderVisuals.add(config, 'particleSize', 0.01, 1.0).name('Particle Size').onChange((v) => { material.uniforms.uSize.value = v * renderer.getPixelRatio(); });
+        
+        const folderInteraction = gui.addFolder('Interaction');
+        folderInteraction.add(config, 'hoverRadius', 1, 10).name('Mouse Radius').onChange((v) => { material.uniforms.uHoverRadius.value = v; });
+        folderInteraction.add(config, 'repelStrength', -5, 10).name('Force Strength').onChange((v) => { material.uniforms.uRepelStrength.value = v; });
 
-        async function setupVision() {
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
-            
-            handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-                    delegate: "GPU"
-                },
-                runningMode: "VIDEO",
-                numHands: 1
-            });
+        const folderBloom = gui.addFolder('Glow Effect');
+        folderBloom.add(config, 'bloomStrength', 0, 3).onChange((v) => bloomPass.strength = v);
+        folderBloom.add(config, 'bloomRadius', 0, 1).onChange((v) => bloomPass.radius = v);
 
-            // Start Camera
-            navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
-                video.srcObject = stream;
-                video.addEventListener("loadeddata", () => {
-                    webcamRunning = true;
-                    document.getElementById('loading').style.display = 'none';
-                    trackingText.innerText = "Hand not detected";
-                });
-            });
-        }
-
-        setupVision();
-
-        // --- 5. Main Loop ---
-
-        let lastVideoTime = -1;
+        // --- ANIMATION LOOP ---
         const clock = new THREE.Clock();
 
         function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            
-            // A. Graphics Update
-            particleMaterial.uniforms.uTime.value = clock.getElapsedTime();
-            controls.update();
-            morphParticles(delta);
+            const elapsedTime = clock.getElapsedTime();
 
-            // Smooth expansion (Lerp)
-            CONFIG.expansion += (CONFIG.targetExpansion - CONFIG.expansion) * 0.1;
-            particleMaterial.uniforms.uExpansion.value = CONFIG.expansion;
-
-            // B. Vision Update
-            if (webcamRunning && handLandmarker && video.currentTime !== lastVideoTime) {
-                lastVideoTime = video.currentTime;
-                
-                // Run detection
-                let results = handLandmarker.detectForVideo(video, performance.now());
-                
-                if (results.landmarks && results.landmarks.length > 0) {
-                    const landmarks = results.landmarks[0];
-                    
-                    // Logic: Calculate openness
-                    // Measure distance between Wrist(0) and Middle Finger Tip(12)
-                    // You can average multiple fingers for better accuracy
-                    
-                    // Simple Euclidean Distance Check
-                    const wrist = landmarks[0];
-                    const tip = landmarks[12]; // Middle finger
-                    
-                    // Approx distance in screen coordinates (normalized 0-1)
-                    const dist = Math.sqrt(
-                        Math.pow(wrist.x - tip.x, 2) + 
-                        Math.pow(wrist.y - tip.y, 2)
-                    );
-
-                    // dist varies roughly between 0.1 (fist) and 0.4+ (open palm) depends on camera distance
-                    // We map 0.15 -> 0.0 (Closed) and 0.35 -> 1.0 (Open)
-                    const minOpen = 0.15;
-                    const maxOpen = 0.4;
-                    const normalized = Math.max(0, Math.min(1, (dist - minOpen) / (maxOpen - minOpen)));
-
-                    CONFIG.targetExpansion = normalized;
-
-                    // Update UI status
-                    trackingDot.classList.add('active');
-                    trackingText.innerText = normalized > 0.5 ? "Hand Open (Disperse)" : "Fist (Contract)";
-                } else {
-                    // No hand detected - drift back to 0
-                    CONFIG.targetExpansion = 0;
-                    trackingDot.classList.remove('active');
-                    trackingText.innerText = "Hand not detected";
-                }
+            if (material) {
+                material.uniforms.uTime.value = elapsedTime * config.speed;
             }
 
-            renderer.render(scene, camera);
+            controls.update();
+            composer.render(); // Use composer instead of renderer for Bloom
+            requestAnimationFrame(animate);
         }
 
-        animate();
-
-        // --- 6. UI Event Listeners ---
-        
-        // Resize
+        // --- RESIZE HANDLING ---
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            particleMaterial.uniforms.uSize.value = 6.0 * window.devicePixelRatio;
+            composer.setSize(window.innerWidth, window.innerHeight);
+            if(material) material.uniforms.uSize.value = config.particleSize * renderer.getPixelRatio();
         });
 
-        // Color Picker
-        document.getElementById('color-picker').addEventListener('input', (e) => {
-            const color = new THREE.Color(e.target.value);
-            particleMaterial.uniforms.uColor.value = color;
-        });
+        // Hide loader
+        document.getElementById('loader').style.display = 'none';
 
-        // Shape Buttons
-        document.querySelectorAll('.shape-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // UI Toggle
-                document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                
-                // Logic
-                CONFIG.currentShape = e.target.getAttribute('data-shape');
-            });
-        });
-
-        // Fullscreen
-        document.getElementById('fs-btn').addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
-        });
+        animate();
     </script>
 </body>
 </html>
