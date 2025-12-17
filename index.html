@@ -1,1434 +1,304 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christmas Wonderland | Interactive 3D Experience</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FilmShader.min.js"></script>
+    <title>Interactive 3D Particles - CodeWithAltin Style</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
             overflow: hidden;
-            background: #000;
-            color: #fff;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        #canvas-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        .ui-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .header {
-            position: absolute;
-            top: 30px;
-            width: 100%;
-            text-align: center;
-            pointer-events: all;
-        }
-
-        .header h1 {
-            font-size: 3.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #ff3366, #33ccff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 30px rgba(255, 51, 102, 0.5);
-            letter-spacing: 3px;
-            font-weight: 800;
-        }
-
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        .controls-panel {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            background: rgba(0, 10, 20, 0.7);
-            border-radius: 15px;
-            padding: 20px;
-            width: 300px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            pointer-events: all;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        .controls-panel:hover {
-            transform: translateY(-5px);
-        }
-
-        .panel-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .panel-title h3 {
-            font-size: 1.3rem;
-            color: #4cd964;
-        }
-
-        .toggle-btn {
-            background: rgba(76, 217, 100, 0.2);
-            border: 1px solid #4cd964;
-            color: #4cd964;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .toggle-btn:hover {
-            background: rgba(76, 217, 100, 0.4);
-            transform: rotate(90deg);
-        }
-
-        .control-group {
-            margin-bottom: 15px;
-        }
-
-        .control-group label {
+        canvas {
             display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: #a0a0c0;
         }
-
-        .slider-container {
-            display: flex;
-            align-items: center;
-        }
-
-        .slider-container input {
-            flex: 1;
-            height: 6px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            outline: none;
-        }
-
-        .slider-container input::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #4cd964;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(76, 217, 100, 0.5);
-        }
-
-        .slider-value {
-            margin-left: 10px;
-            min-width: 40px;
-            text-align: right;
-            font-size: 0.9rem;
-        }
-
-        .color-picker {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-        }
-
-        .color-option {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .color-option:hover {
-            transform: scale(1.2);
-        }
-
-        .color-option.active {
-            border-color: white;
-            box-shadow: 0 0 10px white;
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .control-btn {
-            background: rgba(76, 217, 100, 0.1);
-            border: 1px solid #4cd964;
-            color: #4cd964;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-
-        .control-btn:hover {
-            background: rgba(76, 217, 100, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .footer {
+        #ui-container {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            pointer-events: all;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
         }
-
-        .fullscreen-btn {
+        .btn {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            padding: 10px 20px;
+            border-radius: 20px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            transition: all 0.3s;
             backdrop-filter: blur(5px);
-        }
-
-        .fullscreen-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-
-        .instructions {
-            position: absolute;
-            bottom: 100px;
-            left: 30px;
-            background: rgba(0, 10, 20, 0.7);
-            border-radius: 10px;
-            padding: 15px;
-            max-width: 250px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .instructions h4 {
-            color: #33ccff;
-            margin-bottom: 10px;
-            font-size: 1rem;
-        }
-
-        .instructions ul {
-            list-style: none;
-            font-size: 0.85rem;
-            opacity: 0.8;
-        }
-
-        .instructions li {
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-        }
-
-        .instructions i {
-            margin-right: 8px;
-            color: #4cd964;
-            width: 16px;
-        }
-
-        .particle-count {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: rgba(0, 10, 20, 0.7);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .particle-count span {
-            color: #4cd964;
-            font-weight: bold;
-        }
-
-        .tree-glow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 500px;
-            height: 500px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(76, 217, 100, 0.1) 0%, rgba(76, 217, 100, 0) 70%);
-            filter: blur(40px);
-            z-index: 0;
-            pointer-events: none;
-            transition: all 0.5s ease;
-        }
-
-        .message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 10, 20, 0.8);
-            padding: 30px 40px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 500px;
-            z-index: 10;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-
-        .message h2 {
-            color: #ff3366;
-            margin-bottom: 15px;
-            font-size: 2rem;
-        }
-
-        .message p {
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-        .message button {
-            background: linear-gradient(45deg, #ff3366, #33ccff);
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 30px;
-            font-size: 1rem;
-            cursor: pointer;
             transition: all 0.3s;
-            pointer-events: all;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
         }
-
-        .message button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
+        .btn:hover, .btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
         }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .controls-panel {
-                width: 280px;
-                right: 15px;
-                bottom: 15px;
-            }
-            
-            .header h1 {
-                font-size: 2.5rem;
-            }
-            
-            .instructions, .particle-count {
-                display: none;
-            }
+        #instruction {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
-    
-    <div class="ui-overlay">
-        <div class="tree-glow" id="treeGlow"></div>
-        
-        <div class="header">
-            <h1>CHRISTMAS WONDERLAND</h1>
-            <p>Experience the magic of Christmas with this interactive 3D particle tree</p>
-        </div>
-        
-        <div class="instructions">
-            <h4><i class="fas fa-mouse-pointer"></i> INTERACTION GUIDE</h4>
-            <ul>
-                <li><i class="fas fa-arrows-alt"></i> Move mouse to attract/repel particles</li>
-                <<li><i class="fas fa-expand-arrows-alt"></i> Scroll to zoom in/out</li>
-                <li><i class="fas fa-hand-pointer"></i> Click for festive effects</li>
-                <li><i class="fas fa-tree"></i> Hover over tree to increase glow</li>
-            </ul>
-        </div>
-        
-        <div class="particle-count">
-            Particle Count: <span id="particleCount">0</span>
-        </div>
-        
-        <div class="footer">
-            <div class="fullscreen-btn" id="fullscreenBtn">
-                <i class="fas fa-expand"></i>
-            </div>
-        </div>
-        
-        <div class="controls-panel">
-            <div class="panel-title">
-                <h3><i class="fas fa-sliders-h"></i> CHRISTMAS CONTROLS</h3>
-                <div class="toggle-btn" id="togglePanel">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            
-            <div id="panelContent">
-                <div class="control-group">
-                    <label><i class="fas fa-snowflake"></i> Snow Density</label>
-                    <div class="slider-container">
-                        <input type="range" min="0" max="100" value="40" id="snowDensity">
-                        <div class="slider-value" id="snowValue">40</div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <label><i class="fas fa-lightbulb"></i> Glow Intensity</label>
-                    <div class="slider-container">
-                        <input type="range" min="0" max="200" value="100" id="glowIntensity">
-                        <div class="slider-value" id="glowValue">100</div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <label><i class="fas fa-tachometer-alt"></i> Animation Speed</label>
-                    <div class="slider-container">
-                        <input type="range" min="0" max="200" value="100" id="animationSpeed">
-                        <div class="slider-value" id="speedValue">100</div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <label><i class="fas fa-palette"></i> Tree Color Theme</label>
-                    <div class="color-picker">
-                        <div class="color-option active" style="background: #4cd964;" data-color="#4cd964"></div>
-                        <div class="color-option" style="background: #ff3366;" data-color="#ff3366"></div>
-                        <div class="color-option" style="background: #33ccff;" data-color="#33ccff"></div>
-                        <div class="color-option" style="background: #ffcc00;" data-color="#ffcc00"></div>
-                        <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
-                    </div>
-                </div>
-                
-                <div class="button-group">
-                    <div class="control-btn" id="sparkleBtn">
-                        <i class="fas fa-sparkles"></i> Sparkle Burst
-                    </div>
-                    <div class="control-btn" id="resetBtn">
-                        <i class="fas fa-redo"></i> Reset Tree
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="message" id="welcomeMessage">
-            <h2>Welcome to Christmas Wonderland!</h2>
-            <p>Interact with the 3D particle Christmas tree using your mouse and explore the magical effects. Click anywhere to begin the experience.</p>
-            <button id="startBtn">Begin Experience</button>
-        </div>
+
+    <div id="instruction">Di chuyển CHUỘT (hoặc chạm tay trên màn hình) để tương tác với các hạt</div>
+
+    <div id="ui-container">
+        <button class="btn active" onclick="setShape('planet')">Hành Tinh</button>
+        <button class="btn" onclick="setShape('sphere')">Khối Cầu</button>
+        <button class="btn" onclick="setShape('galaxy')">Ngân Hà</button>
+        <button class="btn" onclick="setShape('explosion')">Pháo Hoa</button>
     </div>
 
-    <script>
-        // Main Three.js application
-        class ChristmasExperience {
-            constructor() {
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.composer = null;
-                this.particles = null;
-                this.snowflakes = null;
-                this.mouse = new THREE.Vector2();
-                this.raycaster = new THREE.Raycaster();
-                this.isTreeHovered = false;
-                this.treeGlowIntensity = 1;
-                this.particleCount = 5000;
-                this.treeColor = new THREE.Color("#4cd964");
-                this.clock = new THREE.Clock();
-                this.interactionStrength = 0;
-                this.isFullscreen = false;
-                this.controls = null;
-                this.init();
-                this.setupEventListeners();
-                this.showWelcomeMessage();
-            }
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.126.0/build/three.module.js';
 
-            init() {
-                // Create scene
-                this.scene = new THREE.Scene();
-                this.scene.fog = new THREE.Fog(0x000022, 10, 50);
+        // 1. Cấu hình cơ bản (Scene, Camera, Renderer)
+        const scene = new THREE.Scene();
+        // Hiệu ứng sương mù để tạo chiều sâu
+        scene.fog = new THREE.FogExp2(0x000000, 0.002);
 
-                // Create camera
-                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.camera.position.set(0, 5, 15);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 100;
 
-                // Create renderer with antialiasing
-                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
 
-                // Add orbit controls for debugging (disabled in production)
-                // this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-                // this.controls.enableZoom = true;
-                // this.controls.enablePan = false;
-                // this.controls.maxPolarAngle = Math.PI / 2;
-                // this.controls.minDistance = 5;
-                // this.controls.maxDistance = 30;
-
-                // Setup post-processing
-                this.setupPostProcessing();
-
-                // Add lighting
-                this.setupLighting();
-
-                // Create the Christmas tree
-                this.createChristmasTree();
-
-                // Create snowfall
-                this.createSnowfall();
-
-                // Add ground
-                this.createGround();
-
-                // Add decorative elements
-                this.addDecorations();
-
-                // Start animation loop
-                this.animate();
-            }
-
-            setupPostProcessing() {
-                const renderScene = new THREE.RenderPass(this.scene, this.camera);
-                
-                // Bloom pass for glow effect
-                const bloomPass = new THREE.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    1.5,  // strength
-                    0.4,  // radius
-                    0.85  // threshold
-                );
-                
-                // Film pass for subtle grain
-                const filmPass = new THREE.ShaderPass(THREE.FilmShader);
-                filmPass.uniforms.grayscale.value = 0;
-                filmPass.uniforms.nIntensity.value = 0.05;
-                filmPass.uniforms.sIntensity.value = 0.1;
-                
-                this.composer = new THREE.EffectComposer(this.renderer);
-                this.composer.addPass(renderScene);
-                this.composer.addPass(bloomPass);
-                this.composer.addPass(filmPass);
-            }
-
-            setupLighting() {
-                // Ambient light
-                const ambientLight = new THREE.AmbientLight(0x333333);
-                this.scene.add(ambientLight);
-
-                // Main directional light (moonlight)
-                const directionalLight = new THREE.DirectionalLight(0x3366ff, 0.5);
-                directionalLight.position.set(10, 20, 5);
-                directionalLight.castShadow = true;
-                directionalLight.shadow.mapSize.width = 2048;
-                directionalLight.shadow.mapSize.height = 2048;
-                this.scene.add(directionalLight);
-
-                // Christmas tree lights (point lights)
-                this.treeLights = [];
-                const lightColors = [0xff3366, 0x33ccff, 0xffcc00, 0x4cd964, 0x9b59b6];
-                
-                for (let i = 0; i < 15; i++) {
-                    const color = lightColors[Math.floor(Math.random() * lightColors.length)];
-                    const light = new THREE.PointLight(color, 0.8, 10);
-                    light.position.set(
-                        (Math.random() - 0.5) * 8,
-                        Math.random() * 12,
-                        (Math.random() - 0.5) * 8
-                    );
-                    this.scene.add(light);
-                    this.treeLights.push({light, color, originalIntensity: 0.8});
-                }
-
-                // Add a subtle blue fill light
-                const fillLight = new THREE.HemisphereLight(0x443388, 0x111122, 0.2);
-                this.scene.add(fillLight);
-            }
-
-            createChristmasTree() {
-                // Create particle system for the tree
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(this.particleCount * 3);
-                const colors = new Float32Array(this.particleCount * 3);
-                const sizes = new Float32Array(this.particleCount);
-                
-                // Create tree shape (cone)
-                for (let i = 0; i < this.particleCount; i++) {
-                    const i3 = i * 3;
-                    
-                    // Tree shape parameters
-                    const height = Math.random();
-                    const radius = (1 - height) * 4;
-                    const angle = Math.random() * Math.PI * 2;
-                    
-                    // Position particles in a cone shape
-                    positions[i3] = Math.cos(angle) * radius * (0.8 + Math.random() * 0.4);
-                    positions[i3 + 1] = height * 12;
-                    positions[i3 + 2] = Math.sin(angle) * radius * (0.8 + Math.random() * 0.4);
-                    
-                    // Add some randomness to create a natural tree look
-                    positions[i3] += (Math.random() - 0.5) * 0.5;
-                    positions[i3 + 2] += (Math.random() - 0.5) * 0.5;
-                    
-                    // Store original positions for animation
-                    const originalY = positions[i3 + 1];
-                    
-                    // Set colors with variation
-                    const color = this.treeColor.clone();
-                    const hueVariation = (Math.random() - 0.5) * 0.2;
-                    color.offsetHSL(hueVariation, 0, Math.random() * 0.2);
-                    
-                    colors[i3] = color.r;
-                    colors[i3 + 1] = color.g;
-                    colors[i3 + 2] = color.b;
-                    
-                    // Size based on position in tree
-                    sizes[i] = 0.1 + (1 - height) * 0.2;
-                    
-                    // Store original position for animation reference
-                    if (!this.originalPositions) this.originalPositions = [];
-                    this.originalPositions.push(new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + 2]));
-                }
-                
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-                
-                // Create material for particles
-                const material = new THREE.PointsMaterial({
-                    size: 0.2,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.9,
-                    sizeAttenuation: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                // Create particle system
-                this.particles = new THREE.Points(geometry, material);
-                this.scene.add(this.particles);
-                
-                // Add a star on top of the tree
-                const starGeometry = new THREE.ConeGeometry(0.5, 1, 5);
-                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00, emissive: 0xffcc00, emissiveIntensity: 0.5 });
-                const star = new THREE.Mesh(starGeometry, starMaterial);
-                star.position.set(0, 13, 0);
-                star.rotation.x = Math.PI;
-                this.scene.add(star);
-                
-                // Add pulsing light to star
-                const starLight = new THREE.PointLight(0xffcc00, 1, 15);
-                star.add(starLight);
-                this.star = star;
-                
-                // Update particle count display
-                document.getElementById('particleCount').textContent = this.particleCount.toLocaleString();
-            }
-
-            createSnowfall() {
-                const snowflakeCount = 2000;
-                const snowGeometry = new THREE.BufferGeometry();
-                const snowPositions = new Float32Array(snowflakeCount * 3);
-                
-                for (let i = 0; i < snowflakeCount; i++) {
-                    const i3 = i * 3;
-                    snowPositions[i3] = (Math.random() - 0.5) * 50;
-                    snowPositions[i3 + 1] = Math.random() * 30;
-                    snowPositions[i3 + 2] = (Math.random() - 0.5) * 50;
-                }
-                
-                snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
-                
-                const snowMaterial = new THREE.PointsMaterial({
-                    size: 0.1,
-                    color: 0xffffff,
-                    transparent: true,
-                    opacity: 0.8,
-                    sizeAttenuation: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                this.snowflakes = new THREE.Points(snowGeometry, snowMaterial);
-                this.scene.add(this.snowflakes);
-            }
-
-            createGround() {
-                // Create snowy ground
-                const groundGeometry = new THREE.CircleGeometry(30, 32);
-                const groundMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x224466,
-                    roughness: 0.8,
-                    metalness: 0.2
-                });
-                
-                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-                ground.rotation.x = -Math.PI / 2;
-                ground.position.y = -0.5;
-                ground.receiveShadow = true;
-                this.scene.add(ground);
-                
-                // Add some ground sparkles
-                const sparkleCount = 100;
-                const sparkleGeometry = new THREE.BufferGeometry();
-                const sparklePositions = new Float32Array(sparkleCount * 3);
-                const sparkleColors = new Float32Array(sparkleCount * 3);
-                
-                for (let i = 0; i < sparkleCount; i++) {
-                    const i3 = i * 3;
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * 25;
-                    
-                    sparklePositions[i3] = Math.cos(angle) * radius;
-                    sparklePositions[i3 + 1] = 0.1;
-                    sparklePositions[i3 + 2] = Math.sin(angle) * radius;
-                    
-                    // Random white/blue colors
-                    sparkleColors[i3] = 0.8 + Math.random() * 0.2;
-                    sparkleColors[i3 + 1] = 0.8 + Math.random() * 0.2;
-                    sparkleColors[i3 + 2] = 1;
-                }
-                
-                sparkleGeometry.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
-                sparkleGeometry.setAttribute('color', new THREE.BufferAttribute(sparkleColors, 3));
-                
-                const sparkleMaterial = new THREE.PointsMaterial({
-                    size: 0.3,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.7,
-                    sizeAttenuation: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                const sparkles = new THREE.Points(sparkleGeometry, sparkleMaterial);
-                this.scene.add(sparkles);
-                this.groundSparkles = sparkles;
-            }
-
-            addDecorations() {
-                // Add some floating ornaments around the tree
-                const ornamentColors = [0xff3366, 0x33ccff, 0xffcc00, 0x4cd964, 0x9b59b6];
-                
-                for (let i = 0; i < 8; i++) {
-                    const color = ornamentColors[Math.floor(Math.random() * ornamentColors.length)];
-                    const geometry = new THREE.SphereGeometry(0.3 + Math.random() * 0.2, 16, 16);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.5,
-                        roughness: 0.1,
-                        emissive: color,
-                        emissiveIntensity: 0.2
-                    });
-                    
-                    const ornament = new THREE.Mesh(geometry, material);
-                    const angle = (i / 8) * Math.PI * 2;
-                    const radius = 6 + Math.random() * 3;
-                    const height = 2 + Math.random() * 8;
-                    
-                    ornament.position.set(
-                        Math.cos(angle) * radius,
-                        height,
-                        Math.sin(angle) * radius
-                    );
-                    
-                    ornament.castShadow = true;
-                    this.scene.add(ornament);
-                    
-                    // Add a subtle floating animation
-                    ornament.userData = {
-                        originalY: height,
-                        speed: 0.5 + Math.random() * 1,
-                        angle: angle,
-                        radius: radius
-                    };
-                    
-                    if (!this.ornaments) this.ornaments = [];
-                    this.ornaments.push(ornament);
-                }
-            }
-
-            setupEventListeners() {
-                // Mouse move interaction
-                document.addEventListener('mousemove', (e) => {
-                    // Calculate mouse position in normalized device coordinates
-                    this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                    this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-                    
-                    // Check if mouse is over the tree
-                    this.raycaster.setFromCamera(this.mouse, this.camera);
-                    const intersects = this.raycaster.intersectObject(this.particles);
-                    
-                    this.isTreeHovered = intersects.length > 0;
-                    
-                    // Update tree glow based on hover
-                    const glowElement = document.getElementById('treeGlow');
-                    if (this.isTreeHovered) {
-                        this.treeGlowIntensity = Math.min(this.treeGlowIntensity + 0.05, 2);
-                        glowElement.style.width = '600px';
-                        glowElement.style.height = '600px';
-                        glowElement.style.background = `radial-gradient(circle, rgba(76, 217, 100, 0.2) 0%, rgba(76, 217, 100, 0) 70%)`;
-                    } else {
-                        this.treeGlowIntensity = Math.max(this.treeGlowIntensity - 0.02, 1);
-                        glowElement.style.width = '500px';
-                        glowElement.style.height = '500px';
-                        glowElement.style.background = `radial-gradient(circle, rgba(76, 217, 100, 0.1) 0%, rgba(76, 217, 100, 0) 70%)`;
-                    }
-                });
-
-                // Mouse click for effects
-                document.addEventListener('click', (e) => {
-                    this.createClickEffect(e.clientX, e.clientY);
-                    
-                    // Randomly trigger different effects
-                    const effects = [this.sparkleBurst, this.lightWave, this.starExplosion];
-                    const randomEffect = effects[Math.floor(Math.random() * effects.length)];
-                    randomEffect.call(this);
-                });
-
-                // Mouse scroll for zoom
-                document.addEventListener('wheel', (e) => {
-                    e.preventDefault();
-                    
-                    // Adjust camera zoom
-                    const zoomSpeed = 0.1;
-                    const delta = e.deltaY > 0 ? zoomSpeed : -zoomSpeed;
-                    this.camera.position.z = THREE.MathUtils.clamp(this.camera.position.z + delta, 5, 30);
-                    
-                    // Adjust particle size based on zoom
-                    const scaleFactor = THREE.MathUtils.mapLinear(this.camera.position.z, 5, 30, 1.5, 0.5);
-                    if (this.particles.material) {
-                        this.particles.material.size = 0.2 * scaleFactor;
-                        this.particles.material.needsUpdate = true;
-                    }
-                });
-
-                // Window resize
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                    this.composer.setSize(window.innerWidth, window.innerHeight);
-                });
-
-                // Fullscreen toggle
-                document.getElementById('fullscreenBtn').addEventListener('click', () => {
-                    this.toggleFullscreen();
-                });
-
-                // Control panel toggle
-                document.getElementById('togglePanel').addEventListener('click', () => {
-                    const panelContent = document.getElementById('panelContent');
-                    const toggleIcon = document.getElementById('togglePanel').querySelector('i');
-                    
-                    if (panelContent.classList.contains('hidden')) {
-                        panelContent.classList.remove('hidden');
-                        toggleIcon.className = 'fas fa-chevron-down';
-                    } else {
-                        panelContent.classList.add('hidden');
-                        toggleIcon.className = 'fas fa-chevron-up';
-                    }
-                });
-
-                // Control sliders
-                const snowSlider = document.getElementById('snowDensity');
-                const snowValue = document.getElementById('snowValue');
-                snowSlider.addEventListener('input', (e) => {
-                    const value = e.target.value;
-                    snowValue.textContent = value;
-                    
-                    // Adjust snow density
-                    if (this.snowflakes) {
-                        this.snowflakes.material.opacity = value / 100;
-                    }
-                });
-
-                const glowSlider = document.getElementById('glowIntensity');
-                const glowValue = document.getElementById('glowValue');
-                glowSlider.addEventListener('input', (e) => {
-                    const value = e.target.value;
-                    glowValue.textContent = value;
-                    
-                    // Adjust bloom intensity
-                    if (this.composer && this.composer.passes[1]) {
-                        this.composer.passes[1].strength = value / 100;
-                    }
-                });
-
-                const speedSlider = document.getElementById('animationSpeed');
-                const speedValue = document.getElementById('speedValue');
-                speedSlider.addEventListener('input', (e) => {
-                    const value = e.target.value;
-                    speedValue.textContent = value;
-                    this.animationSpeedFactor = value / 100;
-                });
-
-                // Color picker
-                document.querySelectorAll('.color-option').forEach(option => {
-                    option.addEventListener('click', (e) => {
-                        // Update active state
-                        document.querySelectorAll('.color-option').forEach(opt => {
-                            opt.classList.remove('active');
-                        });
-                        e.target.classList.add('active');
-                        
-                        // Update tree color
-                        this.treeColor = new THREE.Color(e.target.dataset.color);
-                        this.updateTreeColor();
-                    });
-                });
-
-                // Control buttons
-                document.getElementById('sparkleBtn').addEventListener('click', () => {
-                    this.sparkleBurst();
-                });
-
-                document.getElementById('resetBtn').addEventListener('click', () => {
-                    this.resetTree();
-                });
-
-                // Start button
-                document.getElementById('startBtn').addEventListener('click', () => {
-                    this.hideWelcomeMessage();
-                });
-
-                // Hide welcome message on click anywhere
-                document.addEventListener('click', (e) => {
-                    if (e.target.id !== 'startBtn' && document.getElementById('welcomeMessage').style.opacity === '1') {
-                        this.hideWelcomeMessage();
-                    }
-                });
-            }
-
-            showWelcomeMessage() {
-                const message = document.getElementById('welcomeMessage');
-                setTimeout(() => {
-                    message.style.opacity = '1';
-                }, 500);
-            }
-
-            hideWelcomeMessage() {
-                const message = document.getElementById('welcomeMessage');
-                message.style.opacity = '0';
-                setTimeout(() => {
-                    message.classList.add('hidden');
-                }, 500);
-            }
-
-            toggleFullscreen() {
-                const container = document.getElementById('canvas-container');
-                
-                if (!document.fullscreenElement) {
-                    if (container.requestFullscreen) {
-                        container.requestFullscreen();
-                    } else if (container.webkitRequestFullscreen) {
-                        container.webkitRequestFullscreen();
-                    } else if (container.msRequestFullscreen) {
-                        container.msRequestFullscreen();
-                    }
-                    this.isFullscreen = true;
-                    document.getElementById('fullscreenBtn').innerHTML = '<i class="fas fa-compress"></i>';
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) {
-                        document.msExitFullscreen();
-                    }
-                    this.isFullscreen = false;
-                    document.getElementById('fullscreenBtn').innerHTML = '<i class="fas fa-expand"></i>';
-                }
-            }
-
-            updateTreeColor() {
-                if (!this.particles || !this.particles.geometry) return;
-                
-                const colors = this.particles.geometry.attributes.color.array;
-                
-                for (let i = 0; i < this.particleCount; i++) {
-                    const i3 = i * 3;
-                    const color = this.treeColor.clone();
-                    const hueVariation = (Math.random() - 0.5) * 0.2;
-                    color.offsetHSL(hueVariation, 0, Math.random() * 0.2);
-                    
-                    colors[i3] = color.r;
-                    colors[i3 + 1] = color.g;
-                    colors[i3 + 2] = color.b;
-                }
-                
-                this.particles.geometry.attributes.color.needsUpdate = true;
-            }
-
-            createClickEffect(x, y) {
-                // Convert click position to 3D space
-                const vector = new THREE.Vector3();
-                vector.set(
-                    (x / window.innerWidth) * 2 - 1,
-                    -(y / window.innerHeight) * 2 + 1,
-                    0.5
-                );
-                vector.unproject(this.camera);
-                
-                const dir = vector.sub(this.camera.position).normalize();
-                const distance = 10;
-                const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
-                
-                // Create sparkle burst at click position
-                this.sparkleBurstAt(pos.x, pos.y, pos.z);
-            }
-
-            sparkleBurst() {
-                // Create sparkles at random positions around the tree
-                for (let i = 0; i < 50; i++) {
-                    setTimeout(() => {
-                        const x = (Math.random() - 0.5) * 10;
-                        const y = Math.random() * 12;
-                        const z = (Math.random() - 0.5) * 10;
-                        this.sparkleBurstAt(x, y, z);
-                    }, i * 20);
-                }
-            }
-
-            sparkleBurstAt(x, y, z) {
-                // Create a burst of sparkles
-                const sparkleCount = 30;
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(sparkleCount * 3);
-                const colors = new Float32Array(sparkleCount * 3);
-                
-                for (let i = 0; i < sparkleCount; i++) {
-                    const i3 = i * 3;
-                    positions[i3] = x + (Math.random() - 0.5) * 2;
-                    positions[i3 + 1] = y + (Math.random() - 0.5) * 2;
-                    positions[i3 + 2] = z + (Math.random() - 0.5) * 2;
-                    
-                    // Random festive colors
-                    const colorOptions = [0xff3366, 0x33ccff, 0xffcc00, 0x4cd964, 0xffffff];
-                    const color = new THREE.Color(colorOptions[Math.floor(Math.random() * colorOptions.length)]);
-                    
-                    colors[i3] = color.r;
-                    colors[i3 + 1] = color.g;
-                    colors[i3 + 2] = color.b;
-                }
-                
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                
-                const material = new THREE.PointsMaterial({
-                    size: 0.3,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 1,
-                    sizeAttenuation: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                const sparkles = new THREE.Points(geometry, material);
-                this.scene.add(sparkles);
-                
-                // Animate and remove sparkles
-                let opacity = 1;
-                const animateSparkle = () => {
-                    opacity -= 0.05;
-                    material.opacity = opacity;
-                    material.size *= 0.95;
-                    
-                    if (opacity > 0) {
-                        requestAnimationFrame(animateSparkle);
-                    } else {
-                        this.scene.remove(sparkles);
-                        geometry.dispose();
-                        material.dispose();
-                    }
-                };
-                
-                animateSparkle();
-            }
-
-            lightWave() {
-                // Create a wave of light that travels up the tree
-                if (!this.treeLights || this.treeLights.length === 0) return;
-                
-                const waveDuration = 2000; // ms
-                const startTime = Date.now();
-                
-                const animateWave = () => {
-                    const elapsed = Date.now() - startTime;
-                    const progress = elapsed / waveDuration;
-                    
-                    if (progress > 1) return;
-                    
-                    // Calculate wave position (0 at bottom, 1 at top)
-                    const wavePos = progress;
-                    
-                    // Update lights based on wave position
-                    this.treeLights.forEach((lightObj, i) => {
-                        const lightHeight = lightObj.light.position.y / 12; // Normalize to 0-1
-                        const distanceToWave = Math.abs(lightHeight - wavePos);
-                        
-                        if (distanceToWave < 0.2) {
-                            const intensity = lightObj.originalIntensity * (1 + Math.cos((distanceToWave / 0.2) * Math.PI));
-                            lightObj.light.intensity = intensity;
-                            lightObj.light.distance = 10 + intensity * 5;
-                        } else {
-                            lightObj.light.intensity = lightObj.originalIntensity;
-                            lightObj.light.distance = 10;
-                        }
-                    });
-                    
-                    requestAnimationFrame(animateWave);
-                };
-                
-                animateWave();
-                
-                // Reset lights after animation
-                setTimeout(() => {
-                    this.treeLights.forEach(lightObj => {
-                        lightObj.light.intensity = lightObj.originalIntensity;
-                        lightObj.light.distance = 10;
-                    });
-                }, waveDuration);
-            }
-
-            starExplosion() {
-                // Make the star explode into particles
-                if (!this.star) return;
-                
-                // Hide the star
-                this.star.visible = false;
-                
-                // Create explosion particles
-                const particleCount = 100;
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(particleCount * 3);
-                const colors = new Float32Array(particleCount * 3);
-                const velocities = [];
-                
-                for (let i = 0; i < particleCount; i++) {
-                    const i3 = i * 3;
-                    positions[i3] = this.star.position.x;
-                    positions[i3 + 1] = this.star.position.y;
-                    positions[i3 + 2] = this.star.position.z;
-                    
-                    // Gold/yellow colors
-                    colors[i3] = 1;
-                    colors[i3 + 1] = 0.8 + Math.random() * 0.2;
-                    colors[i3 + 2] = 0;
-                    
-                    // Random velocities
-                    velocities.push({
-                        x: (Math.random() - 0.5) * 0.2,
-                        y: (Math.random() - 0.5) * 0.2,
-                        z: (Math.random() - 0.5) * 0.2
-                    });
-                }
-                
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                
-                const material = new THREE.PointsMaterial({
-                    size: 0.5,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 1,
-                    sizeAttenuation: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                const explosion = new THREE.Points(geometry, material);
-                this.scene.add(explosion);
-                
-                // Animate explosion
-                let opacity = 1;
-                const animateExplosion = () => {
-                    opacity -= 0.02;
-                    material.opacity = opacity;
-                    
-                    // Update particle positions
-                    const positions = explosion.geometry.attributes.position.array;
-                    
-                    for (let i = 0; i < particleCount; i++) {
-                        const i3 = i * 3;
-                        const velocity = velocities[i];
-                        
-                        positions[i3] += velocity.x;
-                        positions[i3 + 1] += velocity.y;
-                        positions[i3 + 2] += velocity.z;
-                        
-                        // Apply gravity
-                        velocity.y -= 0.005;
-                    }
-                    
-                    explosion.geometry.attributes.position.needsUpdate = true;
-                    
-                    if (opacity > 0) {
-                        requestAnimationFrame(animateExplosion);
-                    } else {
-                        this.scene.remove(explosion);
-                        geometry.dispose();
-                        material.dispose();
-                        
-                        // Restore the star
-                        this.star.visible = true;
-                    }
-                };
-                
-                animateExplosion();
-            }
-
-            resetTree() {
-                // Reset all particles to their original positions
-                if (!this.particles || !this.originalPositions) return;
-                
-                const positions = this.particles.geometry.attributes.position.array;
-                
-                for (let i = 0; i < this.particleCount; i++) {
-                    const i3 = i * 3;
-                    const originalPos = this.originalPositions[i];
-                    
-                    positions[i3] = originalPos.x;
-                    positions[i3 + 1] = originalPos.y;
-                    positions[i3 + 2] = originalPos.z;
-                }
-                
-                this.particles.geometry.attributes.position.needsUpdate = true;
-                
-                // Reset camera position
-                this.camera.position.set(0, 5, 15);
-                
-                // Reset animation speed
-                document.getElementById('animationSpeed').value = 100;
-                document.getElementById('speedValue').textContent = '100';
-                this.animationSpeedFactor = 1;
-            }
-
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                const delta = this.clock.getDelta();
-                const time = this.clock.getElapsedTime();
-                
-                // Animation speed factor
-                const speedFactor = this.animationSpeedFactor || 1;
-                
-                // Animate tree particles based on mouse position
-                if (this.particles && this.particles.geometry) {
-                    const positions = this.particles.geometry.attributes.position.array;
-                    const originalPositions = this.originalPositions;
-                    
-                    if (positions && originalPositions) {
-                        // Calculate mouse influence
-                        const mouseInfluence = new THREE.Vector3(
-                            this.mouse.x * 5,
-                            -this.mouse.y * 3,
-                            0
-                        );
-                        
-                        for (let i = 0; i < this.particleCount; i++) {
-                            const i3 = i * 3;
-                            const originalPos = originalPositions[i];
-                            
-                            // Calculate distance from mouse influence
-                            const particlePos = new THREE.Vector3(
-                                positions[i3],
-                                positions[i3 + 1],
-                                positions[i3 + 2]
-                            );
-                            
-                            const distanceToMouse = particlePos.distanceTo(mouseInfluence);
-                            
-                            // Apply different behaviors based on distance
-                            let displacement = new THREE.Vector3();
-                            
-                            if (distanceToMouse < 3) {
-                                // Repel particles when mouse is close
-                                const repelStrength = (3 - distanceToMouse) / 3;
-                                const direction = particlePos.clone().sub(mouseInfluence).normalize();
-                                displacement = direction.multiplyScalar(repelStrength * 0.5);
-                            } else if (distanceToMouse < 6) {
-                                // Attract particles when mouse is moderately close
-                                const attractStrength = (6 - distanceToMouse) / 6;
-                                const direction = mouseInfluence.clone().sub(particlePos).normalize();
-                                displacement = direction.multiplyScalar(attractStrength * 0.3);
-                            }
-                            
-                            // Add swirling motion
-                            const swirlIntensity = 0.1;
-                            const swirlX = Math.sin(time + originalPos.y * 0.5) * swirlIntensity;
-                            const swirlZ = Math.cos(time + originalPos.y * 0.5) * swirlIntensity;
-                            
-                            displacement.x += swirlX;
-                            displacement.z += swirlZ;
-                            
-                            // Add gentle floating motion
-                            const floatIntensity = 0.05;
-                            displacement.y += Math.sin(time * 0.5 + i * 0.01) * floatIntensity;
-                            
-                            // Apply displacement with smoothing
-                            positions[i3] = originalPos.x + displacement.x;
-                            positions[i3 + 1] = originalPos.y + displacement.y;
-                            positions[i3 + 2] = originalPos.z + displacement.z;
-                        }
-                        
-                        this.particles.geometry.attributes.position.needsUpdate = true;
-                    }
-                }
-                
-                // Animate snowfall
-                if (this.snowflakes && this.snowflakes.geometry) {
-                    const positions = this.snowflakes.geometry.attributes.position.array;
-                    const snowDensity = document.getElementById('snowDensity').value / 100;
-                    
-                    for (let i = 0; i < positions.length; i += 3) {
-                        // Move snowflakes downward
-                        positions[i + 1] -= 0.05 * speedFactor * snowDensity;
-                        
-                        // Add some horizontal drift
-                        positions[i] += Math.sin(time + i) * 0.01 * speedFactor;
-                        positions[i + 2] += Math.cos(time + i) * 0.01 * speedFactor;
-                        
-                        // Reset snowflake when it falls below ground
-                        if (positions[i + 1] < -5) {
-                            positions[i] = (Math.random() - 0.5) * 50;
-                            positions[i + 1] = 30;
-                            positions[i + 2] = (Math.random() - 0.5) * 50;
-                        }
-                    }
-                    
-                    this.snowflakes.geometry.attributes.position.needsUpdate = true;
-                }
-                
-                // Animate tree lights
-                if (this.treeLights) {
-                    this.treeLights.forEach((lightObj, i) => {
-                        // Make lights pulse
-                        const pulse = Math.sin(time * 2 + i) * 0.3 + 0.7;
-                        lightObj.light.intensity = lightObj.originalIntensity * pulse * this.treeGlowIntensity;
-                        
-                        // Add slight movement to lights
-                        lightObj.light.position.x += Math.sin(time * 0.5 + i) * 0.01 * speedFactor;
-                        lightObj.light.position.z += Math.cos(time * 0.5 + i) * 0.01 * speedFactor;
-                    });
-                }
-                
-                // Animate ornaments
-                if (this.ornaments) {
-                    this.ornaments.forEach((ornament, i) => {
-                        // Floating animation
-                        ornament.position.y = ornament.userData.originalY + Math.sin(time * ornament.userData.speed) * 0.5;
-                        
-                        // Slow rotation around tree
-                        ornament.userData.angle += 0.01 * speedFactor;
-                        ornament.position.x = Math.cos(ornament.userData.angle) * ornament.userData.radius;
-                        ornament.position.z = Math.sin(ornament.userData.angle) * ornament.userData.radius;
-                        
-                        // Rotation
-                        ornament.rotation.y += 0.01 * speedFactor;
-                    });
-                }
-                
-                // Animate star
-                if (this.star) {
-                    this.star.rotation.y += 0.01 * speedFactor;
-                    this.star.position.y = 13 + Math.sin(time) * 0.2;
-                }
-                
-                // Animate ground sparkles
-                if (this.groundSparkles && this.groundSparkles.geometry) {
-                    const positions = this.groundSparkles.geometry.attributes.position.array;
-                    const colors = this.groundSparkles.geometry.attributes.color.array;
-                    
-                    for (let i = 0; i < positions.length; i += 3) {
-                        // Make sparkles twinkle
-                        const twinkle = Math.sin(time * 3 + i) * 0.3 + 0.7;
-                        colors[i] = 0.8 * twinkle;
-                        colors[i + 1] = 0.8 * twinkle;
-                        colors[i + 2] = 1 * twinkle;
-                        
-                        // Slight bobbing motion
-                        positions[i + 1] = 0.1 + Math.sin(time * 2 + i) * 0.05;
-                    }
-                    
-                    this.groundSparkles.geometry.attributes.color.needsUpdate = true;
-                    this.groundSparkles.geometry.attributes.position.needsUpdate = true;
-                }
-                
-                // Update interaction strength for visual feedback
-                const targetStrength = this.isTreeHovered ? 1 : 0;
-                this.interactionStrength += (targetStrength - this.interactionStrength) * 0.1;
-                
-                // Render the scene with post-processing
-                this.composer.render();
-                
-                // Update controls if they exist
-                if (this.controls) {
-                    this.controls.update();
-                }
-            }
+        // 2. Tạo Texture cho hạt (tạo bằng code để không cần load ảnh ngoài)
+        function getTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.2, 'rgba(255, 220, 100, 1)'); // Màu vàng kim
+            gradient.addColorStop(0.4, 'rgba(255, 200, 50, 0.5)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 32, 32);
+            
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+            return texture;
         }
 
-        // Initialize the experience when the page loads
-        window.addEventListener('load', () => {
-            new ChristmasExperience();
+        // 3. Hệ thống hạt (Particle System)
+        const particleCount = 15000; // Số lượng hạt
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const targetPositions = []; // Vị trí đích để tạo hình
+        const speeds = []; // Tốc độ di chuyển của từng hạt
+
+        // Khởi tạo vị trí ngẫu nhiên ban đầu
+        for (let i = 0; i < particleCount; i++) {
+            positions.push((Math.random() - 0.5) * 400);
+            positions.push((Math.random() - 0.5) * 400);
+            positions.push((Math.random() - 0.5) * 400);
+            
+            targetPositions.push(0, 0, 0); // Placeholder
+            speeds.push(Math.random() * 0.02 + 0.02);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('target', new THREE.Float32BufferAttribute(targetPositions, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 1.5,
+            map: getTexture(),
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            vertexColors: false,
+            color: 0xffddaa // Màu vàng nhạt tổng thể
         });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // 4. Logic tạo hình dáng (Shapes)
+        function calculateShapes(type) {
+            const positionsAttribute = geometry.attributes.target;
+            const count = particleCount;
+
+            for (let i = 0; i < count; i++) {
+                let x, y, z;
+
+                if (type === 'sphere') {
+                    // Hình cầu rỗng
+                    const phi = Math.acos(-1 + (2 * i) / count);
+                    const theta = Math.sqrt(count * Math.PI) * phi;
+                    const r = 40;
+                    
+                    x = r * Math.cos(theta) * Math.sin(phi);
+                    y = r * Math.sin(theta) * Math.sin(phi);
+                    z = r * Math.cos(phi);
+
+                } else if (type === 'planet') {
+                    // Hình cầu + Vành đai (Giống video Saturn)
+                    const r = 30;
+                    if (i < count * 0.7) { // 70% hạt làm hành tinh
+                        const phi = Math.acos(-1 + (2 * i) / (count * 0.7));
+                        const theta = Math.sqrt((count * 0.7) * Math.PI) * phi;
+                        
+                        x = r * Math.cos(theta) * Math.sin(phi);
+                        y = r * Math.sin(theta) * Math.sin(phi);
+                        z = r * Math.cos(phi);
+                    } else { // 30% hạt làm vành đai
+                        const angle = i * 0.1;
+                        const dist = 50 + Math.random() * 15;
+                        x = Math.cos(angle) * dist;
+                        y = (Math.random() - 0.5) * 2; // Độ dày vành đai mỏng
+                        z = Math.sin(angle) * dist;
+                        
+                        // Nghiêng vành đai
+                        const tilt = 0.5;
+                        const oldY = y;
+                        y = oldY * Math.cos(tilt) - z * Math.sin(tilt);
+                        z = oldY * Math.sin(tilt) + z * Math.cos(tilt);
+                    }
+
+                } else if (type === 'galaxy') {
+                    // Hình xoắn ốc
+                    const angle = i * 0.05;
+                    const r = i * 0.01; // Bán kính tăng dần
+                    x = (r * 10) * Math.cos(angle);
+                    y = (Math.random() - 0.5) * 10;
+                    z = (r * 10) * Math.sin(angle);
+
+                } else { // Explosion / Random
+                    x = (Math.random() - 0.5) * 300;
+                    y = (Math.random() - 0.5) * 300;
+                    z = (Math.random() - 0.5) * 300;
+                }
+
+                positionsAttribute.setXYZ(i, x, y, z);
+            }
+            positionsAttribute.needsUpdate = true;
+        }
+
+        // Đặt hình dáng mặc định ban đầu
+        calculateShapes('planet');
+
+        // Hàm xử lý nút bấm
+        window.setShape = (shapeName) => {
+            calculateShapes(shapeName);
+            // Cập nhật UI active
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        };
+
+        // 5. Tương tác chuột (Raycaster & Mouse Plane)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(9999, 9999); // Để mặc định ở xa
+        const mousePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const mousePosition = new THREE.Vector3();
+
+        document.addEventListener('mousemove', (event) => {
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Tính toán vị trí chuột trong không gian 3D tại z=0 (hoặc gần camera)
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.ray.intersectPlane(mousePlane, mousePosition);
+        });
+
+        // Hỗ trợ cảm ứng trên điện thoại
+        document.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            const touch = event.touches[0];
+            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.ray.intersectPlane(mousePlane, mousePosition);
+        }, { passive: false });
+
+
+        // 6. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const positionAttribute = geometry.attributes.position;
+            const targetAttribute = geometry.attributes.target;
+
+            // Quay nhẹ toàn bộ khối để tạo cảm giác 3D
+            particles.rotation.y += 0.002;
+            particles.rotation.z += 0.001;
+
+            for (let i = 0; i < particleCount; i++) {
+                // Lấy vị trí hiện tại
+                let px = positionAttribute.getX(i);
+                let py = positionAttribute.getY(i);
+                let pz = positionAttribute.getZ(i);
+
+                // Lấy vị trí đích (theo hình dáng đang chọn)
+                const tx = targetAttribute.getX(i);
+                const ty = targetAttribute.getY(i);
+                const tz = targetAttribute.getZ(i);
+
+                // Di chuyển hạt về vị trí đích (Easing)
+                px += (tx - px) * speeds[i];
+                py += (ty - py) * speeds[i];
+                pz += (tz - pz) * speeds[i];
+
+                // --- TƯƠNG TÁC CHUỘT (Mô phỏng Hand Tracking) ---
+                // Chuyển đổi vị trí hạt sang tọa độ thế giới (do particles object bị xoay)
+                const particleWorldPos = new THREE.Vector3(px, py, pz).applyMatrix4(particles.matrixWorld);
+                
+                // Tính khoảng cách từ hạt đến chuột
+                const dx = mousePosition.x - particleWorldPos.x;
+                const dy = mousePosition.y - particleWorldPos.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Nếu chuột ở gần (trong bán kính 25 đơn vị), đẩy hạt ra xa
+                if (dist < 25) {
+                    const force = (25 - dist) / 25; // Lực đẩy mạnh hơn khi càng gần
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // Đẩy ngược hướng chuột
+                    const pushX = Math.cos(angle) * force * 50; 
+                    const pushY = Math.sin(angle) * force * 50;
+
+                    // Vì px, py là tọa độ cục bộ (local), ta cần trừ đi ảnh hưởng của rotation
+                    // Để đơn giản hóa, ta cộng trực tiếp lực vào vị trí cục bộ (tạo hiệu ứng hỗn loạn đẹp mắt)
+                    px -= pushX * 0.5;
+                    py -= pushY * 0.5;
+                }
+
+                // Cập nhật lại vị trí
+                positionAttribute.setXYZ(i, px, py, pz);
+            }
+
+            positionAttribute.needsUpdate = true;
+            renderer.render(scene, camera);
+        }
+
+        // Xử lý khi thay đổi kích thước màn hình
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
     </script>
 </body>
 </html>
